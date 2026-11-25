@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'build4/chunk-*.txt'
+      - 'build6/part-*.txt'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p source
-          cat build4/chunk-*.txt | tr -d '\n' | base64 --decode > /tmp/agro-android-project.tar.xz
+          cat build6/part-*.txt | tr -d '\n' | base64 --decode > /tmp/agro-android-project.tar.xz
           xz -t /tmp/agro-android-project.tar.xz
           tar -xJf /tmp/agro-android-project.tar.xz -C source
           test -f source/app/build.gradle
