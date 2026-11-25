@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'build/project-*.b64'
+      - 'build4/chunk-*.txt'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
@@ -23,15 +23,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Reconstruct Android project source
+      - name: Reconstruct and validate Android project
         shell: bash
         run: |
           set -euo pipefail
-          cat build/project-*.b64 | base64 --decode > /tmp/agro-android-project.zip
-          unzip -t /tmp/agro-android-project.zip
-          unzip -q /tmp/agro-android-project.zip -d .
-          test -f Agro_Manejo_Inteligente_Android_Projeto/app/build.gradle
-          test -f Agro_Manejo_Inteligente_Android_Projeto/app/src/main/AndroidManifest.xml
+          mkdir -p source
+          cat build4/chunk-*.txt | tr -d '\n' | base64 --decode > /tmp/agro-android-project.tar.xz
+          xz -t /tmp/agro-android-project.tar.xz
+          tar -xJf /tmp/agro-android-project.tar.xz -C source
+          test -f source/app/build.gradle
+          test -f source/app/src/main/AndroidManifest.xml
+          test -f source/settings.gradle
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -52,11 +54,11 @@ jobs:
           cache-provider: basic
 
       - name: Build debug APK
-        working-directory: Agro_Manejo_Inteligente_Android_Projeto
+        working-directory: source
         run: gradle --no-daemon :app:assembleDebug --stacktrace
 
       - name: Validate generated APK
-        working-directory: Agro_Manejo_Inteligente_Android_Projeto
+        working-directory: source
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
           file app/build/outputs/apk/debug/app-debug.apk
@@ -66,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Agro_Manejo_Inteligente_APK
-          path: Agro_Manejo_Inteligente_Android_Projeto/app/build/outputs/apk/debug/app-debug.apk
+          path: source/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -76,5 +78,5 @@ jobs:
           tag_name: apk-build-${{ github.run_number }}
           name: Agro Manejo Inteligente APK ${{ github.run_number }}
           prerelease: true
-          files: Agro_Manejo_Inteligente_Android_Projeto/app/build/outputs/apk/debug/app-debug.apk
+          files: source/app/build/outputs/apk/debug/app-debug.apk
           fail_on_unmatched_files: true
